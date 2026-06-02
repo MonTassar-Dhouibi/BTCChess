@@ -849,6 +849,15 @@
           }
         });
 
+        square.addEventListener('touchend', (event) => {
+          event.preventDefault();
+          if (rulesEnabled) {
+            handleSquareClickRules(i);
+          } else {
+            attemptPlace(i, selectedDigit);
+          }
+        }, { passive: false });
+
         square.addEventListener('mouseenter', () => updateInspector(i));
 
         square.addEventListener('dragover', (event) => {
