@@ -676,6 +676,8 @@
     let selectedFrom = null;
     let showSquareDigits = true;
     let lastTouchTime = 0;
+    let touchDragActive = false;
+    let touchFromIndex = null;
 
     function getPieceMeta(digit) {
       if (digit === 0) return null;
@@ -854,6 +856,7 @@
         });
 
         square.addEventListener('pointerup', (event) => {
+          if (touchDragActive) return;
           if (event.pointerType === 'touch') {
             lastTouchTime = Date.now();
           }
@@ -863,6 +866,43 @@
             attemptPlace(i, selectedDigit);
           }
         });
+
+        square.addEventListener('touchstart', (event) => {
+          event.preventDefault();
+          touchDragActive = true;
+          touchFromIndex = i;
+        }, { passive: false });
+
+        square.addEventListener('touchend', (event) => {
+          event.preventDefault();
+          const touch = event.changedTouches[0];
+          if (!touch) {
+            touchDragActive = false;
+            touchFromIndex = null;
+            return;
+          }
+          const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+          const targetSquare = targetEl ? targetEl.closest('.square') : null;
+          const targetIndex = targetSquare ? Number(targetSquare.dataset.index) : null;
+          if (targetIndex === null || Number.isNaN(targetIndex)) {
+            touchDragActive = false;
+            touchFromIndex = null;
+            return;
+          }
+
+          if (rulesEnabled) {
+            if (touchFromIndex !== null && touchFromIndex !== targetIndex) {
+              attemptMove(touchFromIndex, targetIndex);
+            } else {
+              handleSquareClickRules(targetIndex);
+            }
+          } else {
+            attemptPlace(targetIndex, selectedDigit, touchFromIndex ?? -1);
+          }
+
+          touchDragActive = false;
+          touchFromIndex = null;
+        }, { passive: false });
 
         square.addEventListener('mouseenter', () => updateInspector(i));
 
