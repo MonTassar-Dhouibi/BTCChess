@@ -317,6 +317,15 @@
       font-weight: 700;
     }
 
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      font-weight: 700;
+      flex-wrap: wrap;
+    }
+
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
@@ -549,6 +558,13 @@
         </label>
       </div>
 
+      <div class="toggle-row">
+        <label>
+          <input type="checkbox" id="digitsToggle" checked />
+          Show square digits
+        </label>
+      </div>
+
       <div class="inspector" id="inspector">
         Hover a square to inspect its contribution.
       </div>
@@ -656,6 +672,7 @@
     let balanceLock = false;
     let rulesEnabled = false;
     let selectedFrom = null;
+    let showSquareDigits = true;
 
     function getPieceMeta(digit) {
       if (digit === 0) return null;
@@ -819,6 +836,9 @@
         badge.className = 'sq-digit';
         badge.textContent = digit;
         badge.style.background = digitColor(digit);
+        if (!showSquareDigits) {
+          badge.style.display = 'none';
+        }
         square.appendChild(badge);
 
         square.addEventListener('click', () => {
@@ -1940,6 +1960,14 @@
       });
     }
 
+    function initDigitsToggle() {
+      const toggle = document.getElementById('digitsToggle');
+      toggle.addEventListener('change', () => {
+        showSquareDigits = toggle.checked;
+        renderBoard();
+      });
+    }
+
     function initKeyboardNav() {
       document.addEventListener('keydown', (event) => {
         const tag = event.target && event.target.tagName;
@@ -2006,6 +2034,7 @@
     initPgnImport();
     initHistoryNav();
     initRulesToggle();
+    initDigitsToggle();
     initKeyboardNav();
     initCopyButtons();
     initEncodingTable();
