@@ -1,0 +1,1971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chess Board to Bitcoin Key</title>
+  <style>
+    :root {
+      --bg-1: #f7f1e3;
+      --bg-2: #e7dcc6;
+      --ink: #1f1d1a;
+      --muted: #5f5b54;
+      --panel: #ffffff;
+      --accent: #b23a48;
+      --accent-2: #007f5f;
+      --board-light: #f0d9b5;
+      --board-dark: #b58863;
+      --shadow: 0 10px 30px rgba(0,0,0,0.15);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --serif: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+      --sans: "Trebuchet MS", "Gill Sans", "Segoe UI", sans-serif;
+      --piece-white: #1f1d1a;
+      --piece-black: #2e2a26;
+      --digit-0: #606c38;
+      --digit-1: #1d3557;
+      --digit-2: #457b9d;
+      --digit-3: #6d597a;
+      --digit-4: #b56576;
+      --digit-5: #e56b6f;
+      --digit-6: #ffb703;
+      --digit-7: #0f4c5c;
+      --digit-8: #3d405b;
+      --digit-9: #588157;
+      --digit-10: #7f5539;
+      --digit-11: #c1121f;
+      --digit-12: #3a0ca3;
+      --n0: #7f7f7f;
+      --n1: #e63946;
+      --n2: #ff7f51;
+      --n3: #f4a261;
+      --n4: #e9c46a;
+      --n5: #8ecae6;
+      --n6: #219ebc;
+      --n7: #023047;
+      --n8: #4361ee;
+      --n9: #3a86ff;
+      --nA: #8338ec;
+      --nB: #ff006e;
+      --nC: #2a9d8f;
+      --nD: #06d6a0;
+      --nE: #118ab2;
+      --nF: #073b4c;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 10% 10%, #fff7e8 0%, var(--bg-1) 45%, var(--bg-2) 100%);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    header {
+      padding: 28px 24px 10px;
+      text-align: center;
+      font-family: var(--serif);
+      letter-spacing: 0.5px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-weight: 700;
+      font-size: clamp(1.6rem, 3vw, 2.6rem);
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .wrap {
+      display: grid;
+      grid-template-columns: minmax(280px, 420px) 1fr;
+      gap: 24px;
+      padding: 20px 24px 40px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 980px) {
+      .wrap {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .board-panel {
+      position: sticky;
+      top: 18px;
+      align-self: start;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 4px solid #241f1a;
+    }
+
+    .square {
+      position: relative;
+      width: 100%;
+      padding-top: 100%;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    .square:hover {
+      transform: scale(1.02);
+      z-index: 2;
+    }
+
+    .square.selected {
+      outline: 3px solid var(--accent);
+      outline-offset: -3px;
+    }
+
+    .sq-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+    }
+
+    .sq-digit {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #fff;
+      background: #333;
+    }
+
+    .rank-labels,
+    .file-labels {
+      display: grid;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.8rem;
+    }
+
+    .rank-labels {
+      grid-template-rows: repeat(8, 1fr);
+      position: absolute;
+      left: -18px;
+      top: 4px;
+      height: calc(100% - 8px);
+      align-items: center;
+    }
+
+    .file-labels {
+      grid-template-columns: repeat(8, 1fr);
+      margin-top: 6px;
+      text-transform: lowercase;
+    }
+
+    .controls h2 {
+      margin: 0 0 12px;
+      font-family: var(--serif);
+    }
+
+    .selector {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(44px, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .piece-btn {
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 8px 4px;
+      background: #f8f4ec;
+      cursor: pointer;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: center;
+      transition: border 0.12s ease, transform 0.12s ease;
+    }
+
+    .piece-btn span {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .piece-btn.active {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      background: #fff3ea;
+    }
+
+    .preset-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 12px 0 18px;
+    }
+
+    .fen-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pgn-row {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .pgn-row textarea {
+      min-height: 90px;
+      resize: vertical;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d6cbb8;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      background: #fffdf8;
+      color: var(--ink);
+    }
+
+    .fen-row input {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid #d6cbb8;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      background: #fffdf8;
+      color: var(--ink);
+    }
+
+    .nav-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 12px 0 18px;
+    }
+
+    .rules-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 18px;
+      font-weight: 700;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: #1d3557;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn.alt { background: #6d597a; }
+    .btn.ghost { background: #457b9d; }
+
+    .inspector {
+      margin-top: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      background: #f7f2e8;
+      font-size: 0.9rem;
+    }
+
+    .inspector strong { color: var(--accent-2); }
+
+    .pipeline h3 {
+      margin: 18px 0 8px;
+      font-family: var(--serif);
+    }
+
+    .step {
+      background: #fdfaf5;
+      border-radius: 12px;
+      padding: 10px 12px;
+      border: 1px solid #e2d9c8;
+      font-size: 0.9rem;
+      overflow: hidden;
+    }
+
+    .digits-grid {
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+
+    .digit-pill {
+      padding: 3px 4px;
+      border-radius: 6px;
+      color: #fff;
+    }
+
+    .mono {
+      font-family: var(--mono);
+      word-break: break-all;
+    }
+
+    .nibble-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      margin-top: 6px;
+    }
+
+    .nibble {
+      width: 12px;
+      height: 16px;
+      border-radius: 3px;
+    }
+
+    .msb-bar {
+      height: 12px;
+      background: #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .msb-fill { height: 100%; }
+
+    .chart {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(16, 1fr);
+      align-items: end;
+      gap: 6px;
+      height: 120px;
+    }
+
+    .bar {
+      border-radius: 6px 6px 0 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: #fff;
+      padding-bottom: 4px;
+    }
+
+    .copy-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    .badge.good { background: #e6f4ea; color: #1b5e20; }
+    .badge.bad { background: #fdecea; color: #b71c1c; }
+
+    .balance-float {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 50;
+      width: min(360px, 90vw);
+      background: #fffaf2;
+      border: 1px solid #e2d9c8;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      font-size: 0.85rem;
+    }
+
+    .balance-float .mono {
+      font-size: 0.75rem;
+    }
+
+    .flash {
+      font-size: 0.85rem;
+      color: var(--accent-2);
+      min-height: 1.1rem;
+    }
+
+    details {
+      margin-top: 16px;
+      background: #f7f2e8;
+      border-radius: 12px;
+      padding: 8px 12px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e0d6c4;
+      text-align: left;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in { animation: rise 0.6s ease both; }
+  </style>
+</head>
+<body>
+  <header class="fade-in">
+    <h1>Chess Board to Bitcoin Key</h1>
+    <p>Base-13 hierarchy encoding with affine transform. Pure client-side BigInt math.</p>
+  </header>
+
+  <main class="wrap">
+    <section class="panel board-panel fade-in">
+      <div style="position: relative;">
+        <div class="rank-labels" id="rankLabels"></div>
+        <div class="board" id="board"></div>
+      </div>
+      <div class="file-labels" id="fileLabels"></div>
+    </section>
+
+    <section class="panel controls fade-in">
+      <h2>Piece Selector</h2>
+      <div class="selector" id="whiteRow"></div>
+      <div class="selector" id="blackRow"></div>
+
+      <div class="preset-row">
+        <button class="btn" id="presetStart">Starting position</button>
+        <button class="btn alt" id="presetClear">Clear board</button>
+        <button class="btn ghost" id="presetRandom">Random</button>
+      </div>
+
+      <div class="fen-row">
+        <input id="fenInput" type="text" placeholder="Paste FEN (piece placement only)" />
+        <button class="btn" id="fenApply">Import FEN</button>
+      </div>
+
+      <div class="pgn-row">
+        <textarea id="pgnInput" placeholder="Paste PGN moves here"></textarea>
+        <button class="btn" id="pgnApply">Import PGN</button>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn" id="navStart">Start</button>
+        <button class="btn alt" id="navBack">Back</button>
+        <button class="btn ghost" id="navNext">Next</button>
+        <button class="btn" id="navEnd">End</button>
+      </div>
+
+      <div class="rules-row">
+        <label>
+          <input type="checkbox" id="rulesToggle" />
+          Rules mode (legal moves only)
+        </label>
+      </div>
+
+      <div class="inspector" id="inspector">
+        Hover a square to inspect its contribution.
+      </div>
+
+      <div class="pipeline">
+        <h3>Encoding Pipeline</h3>
+        <div class="step" id="step1"></div>
+        <div class="step" id="step2"></div>
+        <div class="step" id="step3"></div>
+        <div class="step" id="step4"></div>
+        <div class="step" id="step5"></div>
+        <div class="step" id="step6"></div>
+        <div class="step" id="step7"></div>
+        <div class="step" id="step8"></div>
+
+        <h3>Nibble Distribution</h3>
+        <div class="step">
+          <div class="chart" id="nibbleChart"></div>
+        </div>
+
+        <div class="copy-row">
+          <button class="btn" id="copyHex">Copy hex</button>
+          <button class="btn alt" id="copyWif">Copy WIF</button>
+          <button class="btn ghost" id="copyAddr">Copy address</button>
+        </div>
+        <div class="flash" id="flash"></div>
+
+        <details>
+          <summary>Encoding table (0-12)</summary>
+          <table>
+            <thead>
+              <tr><th>Digit</th><th>Piece</th><th>Color</th></tr>
+            </thead>
+            <tbody id="encodingTable"></tbody>
+          </table>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <div class="balance-float" id="balanceFloat"></div>
+
+  <script>
+    const CURVE_N = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
+    const CURVE_P = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F');
+    const GX = BigInt('0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798');
+    const GY = BigInt('0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8');
+
+    const DIGIT_INFO = [
+      { digit: 0, piece: 'Empty', color: '—', symbol: '' },
+      { digit: 1, piece: 'Pawn', color: 'White', symbol: '♙' },
+      { digit: 2, piece: 'Knight', color: 'White', symbol: '♘' },
+      { digit: 3, piece: 'Bishop', color: 'White', symbol: '♗' },
+      { digit: 4, piece: 'Rook', color: 'White', symbol: '♖' },
+      { digit: 5, piece: 'Queen', color: 'White', symbol: '♕' },
+      { digit: 6, piece: 'King', color: 'White', symbol: '♔' },
+      { digit: 7, piece: 'Pawn', color: 'Black', symbol: '♟' },
+      { digit: 8, piece: 'Knight', color: 'Black', symbol: '♞' },
+      { digit: 9, piece: 'Bishop', color: 'Black', symbol: '♝' },
+      { digit: 10, piece: 'Rook', color: 'Black', symbol: '♜' },
+      { digit: 11, piece: 'Queen', color: 'Black', symbol: '♛' },
+      { digit: 12, piece: 'King', color: 'Black', symbol: '♚' },
+    ];
+
+    const STARTING = [
+      10, 8, 9, 11, 12, 9, 8, 10,
+      7, 7, 7, 7, 7, 7, 7, 7,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0,
+      1, 1, 1, 1, 1, 1, 1, 1,
+      4, 2, 3, 5, 6, 3, 2, 4,
+    ];
+
+    const pieceOrder = [1, 2, 3, 4, 5, 6];
+
+    const boardEl = document.getElementById('board');
+    const rankLabelsEl = document.getElementById('rankLabels');
+    const fileLabelsEl = document.getElementById('fileLabels');
+    const inspectorEl = document.getElementById('inspector');
+    const step1El = document.getElementById('step1');
+    const step2El = document.getElementById('step2');
+    const step3El = document.getElementById('step3');
+    const step4El = document.getElementById('step4');
+    const step5El = document.getElementById('step5');
+    const step6El = document.getElementById('step6');
+    const step7El = document.getElementById('step7');
+    const step8El = document.getElementById('step8');
+    const balanceFloatEl = document.getElementById('balanceFloat');
+    const nibbleChartEl = document.getElementById('nibbleChart');
+    const flashEl = document.getElementById('flash');
+
+    const encodingTableEl = document.getElementById('encodingTable');
+
+    let board = [...STARTING];
+    let selectedDigit = 1;
+    const PIECE_LIMITS = { 1: 8, 2: 2, 3: 2, 4: 2, 5: 1, 6: 1 };
+    const MAX_PIECES_PER_COLOR = 16;
+    let history = [[...STARTING]];
+    let historyIndex = 0;
+    let pgnMoves = [];
+    let autoBalanceEnabled = false;
+    let autoBalanceTimer = null;
+    let balanceLock = false;
+    let rulesEnabled = false;
+    let selectedFrom = null;
+
+    function getPieceMeta(digit) {
+      if (digit === 0) return null;
+      const isWhite = digit <= 6;
+      return {
+        color: isWhite ? 'white' : 'black',
+        type: isWhite ? digit : digit - 6,
+      };
+    }
+
+    function buildCounts(boardArr, skipA = -1, skipB = -1) {
+      const counts = {
+        white: { total: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+        black: { total: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+      };
+      boardArr.forEach((digit, idx) => {
+        if (idx === skipA || idx === skipB) return;
+        const meta = getPieceMeta(digit);
+        if (!meta) return;
+        counts[meta.color].total += 1;
+        counts[meta.color][meta.type] += 1;
+      });
+      return counts;
+    }
+
+    function checkPlacement(boardArr, digit, index, sourceIndex = -1) {
+      if (digit === 0) return { ok: true };
+      const meta = getPieceMeta(digit);
+      const row = Math.floor(index / 8);
+      if ((digit === 1 || digit === 7) && (row === 0 || row === 7)) {
+        return { ok: false, reason: 'Pawns cannot be on ranks 1 or 8.' };
+      }
+      const counts = buildCounts(boardArr, index, sourceIndex);
+      const colorCounts = counts[meta.color];
+      if (colorCounts.total + 1 > MAX_PIECES_PER_COLOR) {
+        return { ok: false, reason: 'Too many pieces for that color.' };
+      }
+      if (colorCounts[meta.type] + 1 > PIECE_LIMITS[meta.type]) {
+        return { ok: false, reason: `Too many ${meta.color} ${DIGIT_INFO[digit].piece.toLowerCase()}s.` };
+      }
+      return { ok: true };
+    }
+
+    function validateBoard(boardArr) {
+      const counts = buildCounts(boardArr);
+      const issues = [];
+      ['white', 'black'].forEach((color) => {
+        if (counts[color][6] !== 1) issues.push(`${color} must have exactly one king`);
+        if (counts[color].total > MAX_PIECES_PER_COLOR) issues.push(`${color} has too many pieces`);
+        Object.entries(PIECE_LIMITS).forEach(([type, max]) => {
+          if (counts[color][type] > max) issues.push(`${color} has too many ${type}`);
+        });
+      });
+      boardArr.forEach((digit, idx) => {
+        if (digit === 1 || digit === 7) {
+          const row = Math.floor(idx / 8);
+          if (row === 0 || row === 7) issues.push('Pawn on invalid rank');
+        }
+      });
+      return { ok: issues.length === 0, issue: issues[0] || '' };
+    }
+
+    function digitColor(digit) {
+      const key = digit === 10 ? 'digit-10' : digit === 11 ? 'digit-11' : digit === 12 ? 'digit-12' : `digit-${digit}`;
+      return getComputedStyle(document.documentElement).getPropertyValue(`--${key}`).trim();
+    }
+
+    function nibbleColor(nibble) {
+      const key = `--n${nibble.toUpperCase()}`;
+      return getComputedStyle(document.documentElement).getPropertyValue(key).trim();
+    }
+
+    function initLabels() {
+      rankLabelsEl.innerHTML = '';
+      for (let r = 8; r >= 1; r--) {
+        const div = document.createElement('div');
+        div.textContent = r;
+        rankLabelsEl.appendChild(div);
+      }
+      fileLabelsEl.innerHTML = '';
+      for (let f = 0; f < 8; f++) {
+        const div = document.createElement('div');
+        div.textContent = String.fromCharCode(97 + f);
+        fileLabelsEl.appendChild(div);
+      }
+    }
+
+    function initSelector() {
+      const whiteRow = document.getElementById('whiteRow');
+      const blackRow = document.getElementById('blackRow');
+      whiteRow.innerHTML = '';
+      blackRow.innerHTML = '';
+
+      pieceOrder.forEach((digit) => {
+        const info = DIGIT_INFO[digit];
+        whiteRow.appendChild(makePieceButton(info));
+      });
+
+      pieceOrder.forEach((digit) => {
+        const info = DIGIT_INFO[digit + 6];
+        blackRow.appendChild(makePieceButton(info));
+      });
+
+      const eraser = document.createElement('button');
+      eraser.className = 'piece-btn';
+      eraser.dataset.digit = '0';
+      eraser.textContent = '⌫';
+      const span = document.createElement('span');
+      span.textContent = '0';
+      eraser.appendChild(span);
+      eraser.addEventListener('click', () => selectDigit(0));
+      eraser.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', '0');
+      });
+      eraser.draggable = true;
+      whiteRow.appendChild(eraser);
+    }
+
+    function makePieceButton(info) {
+      const btn = document.createElement('button');
+      btn.className = 'piece-btn';
+      btn.dataset.digit = info.digit;
+      btn.textContent = info.symbol;
+      const span = document.createElement('span');
+      span.textContent = info.digit;
+      btn.appendChild(span);
+      btn.addEventListener('click', () => selectDigit(info.digit));
+      btn.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', String(info.digit));
+      });
+      btn.draggable = true;
+      return btn;
+    }
+
+    function selectDigit(digit) {
+      selectedDigit = digit;
+      document.querySelectorAll('.piece-btn').forEach((btn) => {
+        btn.classList.toggle('active', Number(btn.dataset.digit) === digit);
+      });
+    }
+
+    function renderBoard() {
+      boardEl.innerHTML = '';
+      board.forEach((digit, i) => {
+        const square = document.createElement('div');
+        square.className = 'square';
+        if (rulesEnabled && selectedFrom === i) {
+          square.classList.add('selected');
+        }
+        square.dataset.index = String(i);
+        const isLight = (Math.floor(i / 8) + i) % 2 === 0;
+        square.style.background = isLight ? 'var(--board-light)' : 'var(--board-dark)';
+
+        const inner = document.createElement('div');
+        inner.className = 'sq-inner';
+        inner.textContent = DIGIT_INFO[digit].symbol;
+        inner.style.color = digit <= 6 ? 'var(--piece-white)' : 'var(--piece-black)';
+        square.appendChild(inner);
+
+        const badge = document.createElement('div');
+        badge.className = 'sq-digit';
+        badge.textContent = digit;
+        badge.style.background = digitColor(digit);
+        square.appendChild(badge);
+
+        square.addEventListener('click', () => {
+          if (rulesEnabled) {
+            handleSquareClickRules(i);
+          } else {
+            attemptPlace(i, selectedDigit);
+          }
+        });
+
+        square.addEventListener('mouseenter', () => updateInspector(i));
+
+        square.addEventListener('dragover', (event) => {
+          event.preventDefault();
+        });
+
+        square.addEventListener('drop', (event) => {
+          event.preventDefault();
+          const digitStr = event.dataTransfer.getData('text/plain');
+          const sourceStr = event.dataTransfer.getData('text/source');
+          const nextDigit = Number(digitStr);
+          const sourceIndex = sourceStr === '' ? -1 : Number(sourceStr);
+          if (!Number.isInteger(nextDigit)) return;
+          if (rulesEnabled && sourceIndex >= 0) {
+            attemptMove(sourceIndex, i);
+          } else if (!rulesEnabled) {
+            attemptPlace(i, nextDigit, sourceIndex);
+          }
+        });
+
+        square.addEventListener('dragstart', (event) => {
+          event.dataTransfer.setData('text/plain', String(digit));
+          event.dataTransfer.setData('text/source', String(i));
+        });
+
+        square.draggable = digit !== 0;
+
+        boardEl.appendChild(square);
+      });
+    }
+
+    function handleSquareClickRules(index) {
+      if (balanceLock) {
+        flash('Editing locked. Click Resume to continue.');
+        return;
+      }
+      const digit = board[index];
+      if (selectedFrom === null) {
+        if (digit === 0) return;
+        selectedFrom = index;
+        renderBoard();
+        return;
+      }
+      if (selectedFrom === index) {
+        selectedFrom = null;
+        renderBoard();
+        return;
+      }
+      attemptMove(selectedFrom, index);
+    }
+
+    function choosePromotion(color) {
+      const choice = window.prompt('Promote pawn to (Q/R/B/N):', 'Q');
+      if (!choice) return null;
+      const c = choice.trim().toUpperCase();
+      const map = { Q: 5, R: 4, B: 3, N: 2 };
+      const type = map[c] || 5;
+      return color === 'white' ? type : type + 6;
+    }
+
+    function findKing(boardArr, color) {
+      const target = color === 'white' ? 6 : 12;
+      return boardArr.findIndex((digit) => digit === target);
+    }
+
+    function isSquareAttacked(boardArr, index, byColor) {
+      for (let i = 0; i < 64; i++) {
+        const digit = boardArr[i];
+        const meta = getPieceMeta(digit);
+        if (!meta || meta.color !== byColor) continue;
+        const from = indexToCoord(i);
+        const to = indexToCoord(index);
+        const dr = to.row - from.row;
+        const dc = to.col - from.col;
+        if (meta.type === 1) {
+          const dir = byColor === 'white' ? -1 : 1;
+          if (dr === dir && Math.abs(dc) === 1) return true;
+        } else if (meta.type === 2) {
+          if ((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2)) return true;
+        } else if (meta.type === 3 || meta.type === 4 || meta.type === 5) {
+          const stepR = dr === 0 ? 0 : dr / Math.abs(dr);
+          const stepC = dc === 0 ? 0 : dc / Math.abs(dc);
+          if (meta.type === 3 && Math.abs(dr) !== Math.abs(dc)) continue;
+          if (meta.type === 4 && !(dr === 0 || dc === 0)) continue;
+          if (meta.type === 5 && !(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) continue;
+          let r = from.row + stepR;
+          let c = from.col + stepC;
+          let blocked = false;
+          while (r !== to.row || c !== to.col) {
+            if (boardArr[r * 8 + c] !== 0) { blocked = true; break; }
+            r += stepR;
+            c += stepC;
+          }
+          if (!blocked) return true;
+        } else if (meta.type === 6) {
+          if (Math.max(Math.abs(dr), Math.abs(dc)) === 1) return true;
+        }
+      }
+      return false;
+    }
+
+    function isKingInCheck(boardArr, color) {
+      const kingIndex = findKing(boardArr, color);
+      if (kingIndex < 0) return false;
+      const enemy = color === 'white' ? 'black' : 'white';
+      return isSquareAttacked(boardArr, kingIndex, enemy);
+    }
+
+    function attemptMove(fromIndex, toIndex) {
+      if (balanceLock) {
+        flash('Editing locked. Click Resume to continue.');
+        return;
+      }
+      const moving = board[fromIndex];
+      if (moving === 0) return;
+      const movingMeta = getPieceMeta(moving);
+      const target = board[toIndex];
+      const targetMeta = getPieceMeta(target);
+      if (targetMeta && targetMeta.color === movingMeta.color) {
+        flash('Cannot capture same color.');
+        return;
+      }
+      const captureOnly = movingMeta.type === 1 && target !== 0;
+      if (!canReach(board, fromIndex, toIndex, movingMeta.type, movingMeta.color, captureOnly, -1)) {
+        flash('Illegal move.');
+        return;
+      }
+
+      const nextBoard = [...board];
+      let placed = moving;
+      const toPos = indexToCoord(toIndex);
+      if (movingMeta.type === 1 && (toPos.row === 0 || toPos.row === 7)) {
+        const promotion = choosePromotion(movingMeta.color);
+        if (!promotion) return;
+        placed = promotion;
+      }
+      nextBoard[fromIndex] = 0;
+      nextBoard[toIndex] = placed;
+
+      if (isKingInCheck(nextBoard, movingMeta.color)) {
+        flash('Move leaves king in check.');
+        return;
+      }
+
+      selectedFrom = null;
+      applyBoard(nextBoard, true);
+    }
+
+    function attemptPlace(targetIndex, digit, sourceIndex = -1) {
+      if (balanceLock) {
+        flash('Editing locked. Click Resume to continue.');
+        return;
+      }
+      const check = checkPlacement(board, digit, targetIndex, sourceIndex);
+      if (!check.ok) {
+        flash(check.reason);
+        return;
+      }
+      const nextBoard = [...board];
+      if (sourceIndex >= 0 && sourceIndex !== targetIndex) {
+        nextBoard[sourceIndex] = 0;
+      }
+      nextBoard[targetIndex] = digit;
+      applyBoard(nextBoard, true);
+    }
+
+    function applyBoard(nextBoard, pushHistory = true) {
+      board = [...nextBoard];
+      renderBoard();
+      updatePipeline();
+      if (pushHistory) {
+        if (historyIndex < history.length - 1) {
+          history = history.slice(0, historyIndex + 1);
+        }
+        history.push([...board]);
+        historyIndex = history.length - 1;
+      }
+      updateNavButtons();
+    }
+
+    function updateNavButtons() {
+      const startBtn = document.getElementById('navStart');
+      const backBtn = document.getElementById('navBack');
+      const nextBtn = document.getElementById('navNext');
+      const endBtn = document.getElementById('navEnd');
+      const atStart = historyIndex <= 0;
+      const atEnd = historyIndex >= history.length - 1;
+      startBtn.disabled = atStart;
+      backBtn.disabled = atStart;
+      nextBtn.disabled = atEnd;
+      endBtn.disabled = atEnd;
+    }
+
+    function squareToIndex(square) {
+      const file = square.charCodeAt(0) - 97;
+      const rank = Number(square[1]);
+      if (file < 0 || file > 7 || rank < 1 || rank > 8) return -1;
+      return (8 - rank) * 8 + file;
+    }
+
+    function indexToCoord(index) {
+      const row = Math.floor(index / 8);
+      const col = index % 8;
+      return {
+        row,
+        col,
+        rank: 8 - row,
+        file: String.fromCharCode(97 + col),
+      };
+    }
+
+    function pieceTypeToLetter(type) {
+      return { 1: 'P', 2: 'N', 3: 'B', 4: 'R', 5: 'Q', 6: 'K' }[type];
+    }
+
+    function canReach(boardArr, from, to, type, color, captureOnly, epSquare) {
+      const fromPos = indexToCoord(from);
+      const toPos = indexToCoord(to);
+      const dr = toPos.row - fromPos.row;
+      const dc = toPos.col - fromPos.col;
+      const target = boardArr[to];
+      const targetMeta = getPieceMeta(target);
+      if (targetMeta && targetMeta.color === color) return false;
+
+      if (type === 1) {
+        const dir = color === 'white' ? -1 : 1;
+        const startRow = color === 'white' ? 6 : 1;
+        const oneStep = fromPos.row + dir;
+        if (captureOnly) {
+          if (Math.abs(dc) !== 1 || dr !== dir) return false;
+          if (target !== 0) return true;
+          return to === epSquare;
+        }
+        if (dc !== 0) return false;
+        if (dr === dir && target === 0) return true;
+        if (fromPos.row === startRow && dr === 2 * dir) {
+          const between = (fromPos.row + dir) * 8 + fromPos.col;
+          return target === 0 && boardArr[between] === 0;
+        }
+        return false;
+      }
+
+      if (type === 2) {
+        return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+      }
+
+      if (type === 3 || type === 4 || type === 5) {
+        const stepR = dr === 0 ? 0 : dr / Math.abs(dr);
+        const stepC = dc === 0 ? 0 : dc / Math.abs(dc);
+        if (type === 3 && Math.abs(dr) !== Math.abs(dc)) return false;
+        if (type === 4 && !(dr === 0 || dc === 0)) return false;
+        if (type === 5 && !(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return false;
+        let r = fromPos.row + stepR;
+        let c = fromPos.col + stepC;
+        while (r !== toPos.row || c !== toPos.col) {
+          if (boardArr[r * 8 + c] !== 0) return false;
+          r += stepR;
+          c += stepC;
+        }
+        return true;
+      }
+
+      if (type === 6) {
+        return Math.max(Math.abs(dr), Math.abs(dc)) === 1;
+      }
+      return false;
+    }
+
+    function parseSanMove(token) {
+      const cleaned = token.replace(/[?!]+/g, '').replace(/[+#]+/g, '');
+      if (cleaned === 'O-O' || cleaned === '0-0') return { castle: 'K' };
+      if (cleaned === 'O-O-O' || cleaned === '0-0-0') return { castle: 'Q' };
+
+      let promotion = null;
+      let core = cleaned;
+      const promoIndex = core.indexOf('=');
+      if (promoIndex !== -1) {
+        promotion = core.slice(promoIndex + 1, promoIndex + 2);
+        core = core.slice(0, promoIndex);
+      }
+
+      const dest = core.slice(-2);
+      if (!/^[a-h][1-8]$/.test(dest)) return null;
+      const prefix = core.slice(0, -2).replace('x', '');
+      const capture = core.includes('x');
+      let piece = 'P';
+      let disamb = prefix;
+      if (/^[KQRBN]/.test(prefix)) {
+        piece = prefix[0];
+        disamb = prefix.slice(1);
+      }
+      return { piece, disamb, capture, dest, promotion };
+    }
+
+    function applySan(boardArr, san, color, epSquare) {
+      const move = parseSanMove(san);
+      if (!move) return null;
+      const nextBoard = [...boardArr];
+      let nextEp = -1;
+
+      if (move.castle) {
+        if (color === 'white') {
+          if (move.castle === 'K') {
+            if (nextBoard[60] !== 6 || nextBoard[63] !== 4) return null;
+            if (nextBoard[61] !== 0 || nextBoard[62] !== 0) return null;
+            nextBoard[60] = 0; nextBoard[63] = 0;
+            nextBoard[62] = 6; nextBoard[61] = 4;
+          } else {
+            if (nextBoard[60] !== 6 || nextBoard[56] !== 4) return null;
+            if (nextBoard[57] !== 0 || nextBoard[58] !== 0 || nextBoard[59] !== 0) return null;
+            nextBoard[60] = 0; nextBoard[56] = 0;
+            nextBoard[58] = 6; nextBoard[59] = 4;
+          }
+        } else {
+          if (move.castle === 'K') {
+            if (nextBoard[4] !== 12 || nextBoard[7] !== 10) return null;
+            if (nextBoard[5] !== 0 || nextBoard[6] !== 0) return null;
+            nextBoard[4] = 0; nextBoard[7] = 0;
+            nextBoard[6] = 12; nextBoard[5] = 10;
+          } else {
+            if (nextBoard[4] !== 12 || nextBoard[0] !== 10) return null;
+            if (nextBoard[1] !== 0 || nextBoard[2] !== 0 || nextBoard[3] !== 0) return null;
+            nextBoard[4] = 0; nextBoard[0] = 0;
+            nextBoard[2] = 12; nextBoard[3] = 10;
+          }
+        }
+        return { board: nextBoard, epSquare: nextEp };
+      }
+
+      const typeMap = { P: 1, N: 2, B: 3, R: 4, Q: 5, K: 6 };
+      const pieceType = typeMap[move.piece];
+      const destIndex = squareToIndex(move.dest);
+      const candidates = [];
+      for (let i = 0; i < 64; i++) {
+        const digit = nextBoard[i];
+        const meta = getPieceMeta(digit);
+        if (!meta || meta.color !== color) continue;
+        if (meta.type !== pieceType) continue;
+        if (!canReach(nextBoard, i, destIndex, meta.type, color, move.capture && pieceType === 1, epSquare)) continue;
+        candidates.push(i);
+      }
+
+      let filtered = candidates;
+      if (move.disamb) {
+        if (move.disamb.length === 2) {
+          const file = move.disamb[0];
+          const rank = Number(move.disamb[1]);
+          filtered = filtered.filter((idx) => {
+            const pos = indexToCoord(idx);
+            return pos.file === file && pos.rank === rank;
+          });
+        } else if (/[a-h]/.test(move.disamb)) {
+          filtered = filtered.filter((idx) => indexToCoord(idx).file === move.disamb);
+        } else if (/[1-8]/.test(move.disamb)) {
+          filtered = filtered.filter((idx) => indexToCoord(idx).rank === Number(move.disamb));
+        }
+      }
+
+      let from = filtered[0];
+      if (!from && pieceType === 1) {
+        const destPos = indexToCoord(destIndex);
+        const dir = color === 'white' ? -1 : 1;
+        if (move.capture) {
+          const candidatesFallback = [
+            (destPos.row - dir) * 8 + (destPos.col - 1),
+            (destPos.row - dir) * 8 + (destPos.col + 1),
+          ].filter((idx) => idx >= 0 && idx < 64);
+          from = candidatesFallback.find((idx) => {
+            const meta = getPieceMeta(nextBoard[idx]);
+            return meta && meta.color === color && meta.type === 1;
+          });
+        } else {
+          const candidatesFallback = [
+            (destPos.row - dir) * 8 + destPos.col,
+            (destPos.row - 2 * dir) * 8 + destPos.col,
+          ].filter((idx) => idx >= 0 && idx < 64);
+          from = candidatesFallback.find((idx) => {
+            const meta = getPieceMeta(nextBoard[idx]);
+            return meta && meta.color === color && meta.type === 1;
+          });
+        }
+      }
+
+      if (from === undefined) {
+        from = nextBoard.findIndex((digit) => {
+          const meta = getPieceMeta(digit);
+          return meta && meta.color === color && meta.type === pieceType;
+        });
+      }
+
+      if (from === -1 || from === undefined) return null;
+
+      if (pieceType === 1 && move.capture && nextBoard[destIndex] === 0) {
+        if (destIndex !== epSquare) return null;
+        const fromPos = indexToCoord(from);
+        const epCaptureRow = fromPos.row + (color === 'white' ? -1 : 1);
+        const capturedIndex = epCaptureRow * 8 + indexToCoord(destIndex).col;
+        nextBoard[capturedIndex] = 0;
+      }
+
+      nextBoard[from] = 0;
+      let placed = pieceType;
+      if (move.promotion) {
+        placed = typeMap[move.promotion] || pieceType;
+      }
+      nextBoard[destIndex] = color === 'white' ? placed : placed + 6;
+
+      if (pieceType === 1) {
+        const fromPos = indexToCoord(from);
+        const toPos = indexToCoord(destIndex);
+        if (Math.abs(toPos.row - fromPos.row) === 2) {
+          const epRow = (fromPos.row + toPos.row) / 2;
+          nextEp = epRow * 8 + fromPos.col;
+        }
+      }
+
+      return { board: nextBoard, epSquare: nextEp };
+    }
+
+    function parsePgnMoves(pgn) {
+      const stripped = pgn
+        .replace(/\{[^}]*\}/g, ' ')
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/\[[^\]]*\]/g, ' ')
+        .replace(/\d+\.(\.\.)?/g, ' ')
+        .replace(/1-0|0-1|1\/2-1\/2|\*/g, ' ');
+      return stripped
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
+    }
+
+    function parseFen(fen) {
+      const part = fen.trim().split(/\s+/)[0];
+      const ranks = part.split('/');
+      if (ranks.length !== 8) return null;
+      const map = {
+        p: 7, n: 8, b: 9, r: 10, q: 11, k: 12,
+        P: 1, N: 2, B: 3, R: 4, Q: 5, K: 6,
+      };
+      const out = [];
+      for (const rank of ranks) {
+        let count = 0;
+        for (const ch of rank) {
+          if (ch >= '1' && ch <= '8') {
+            const empties = Number(ch);
+            for (let i = 0; i < empties; i++) out.push(0);
+            count += empties;
+          } else if (map[ch] !== undefined) {
+            out.push(map[ch]);
+            count += 1;
+          } else {
+            return null;
+          }
+        }
+        if (count !== 8) return null;
+      }
+      return out.length === 64 ? out : null;
+    }
+
+    function updateInspector(index) {
+      const digit = board[index];
+      const info = DIGIT_INFO[digit];
+      const row = Math.floor(index / 8);
+      const col = index % 8;
+      const squareName = `${String.fromCharCode(97 + col)}${8 - row}`;
+      const rank = digit === 0 ? '—' : digit <= 6 ? digit : digit - 6;
+      const power = 63 - index;
+      inspectorEl.innerHTML = `
+        <div><strong>${squareName}</strong> (index ${index})</div>
+        <div>Digit: <strong style="color:${digitColor(digit)}">${digit}</strong></div>
+        <div>Piece: ${info.piece} ${info.color}</div>
+        <div>Hierarchy rank: ${rank}</div>
+        <div>Contribution: ${digit} × 13^${power}</div>
+      `;
+    }
+
+    function computeN() {
+      let N = 0n;
+      for (let i = 0; i < 64; i++) {
+        N = N * 13n + BigInt(board[i]);
+      }
+      return N;
+    }
+
+    function encodeKey(N) {
+      const stretched = N * GX;
+      const shifted = stretched + CURVE_P;
+      const m = shifted % CURVE_N;
+      const key = m === 0n ? 1n : m;
+      return {
+        stretched,
+        shifted,
+        key,
+      };
+    }
+
+    function truncateHex(hex, max = 70) {
+      if (hex.length <= max) return hex;
+      return hex.slice(0, max) + '…';
+    }
+
+    function buildDigitsDisplay() {
+      const container = document.createElement('div');
+      const validity = validateBoard(board);
+      container.innerHTML = `<strong>Step 1 — Base-13 digits</strong>
+        <div class="badge ${validity.ok ? 'good' : 'bad'}">${validity.ok ? 'Board valid' : 'Board invalid: ' + validity.issue}</div>`;
+      const grid = document.createElement('div');
+      grid.className = 'digits-grid';
+      board.forEach((digit) => {
+        const pill = document.createElement('div');
+        pill.className = 'digit-pill';
+        pill.textContent = digit;
+        pill.style.background = digitColor(digit);
+        grid.appendChild(pill);
+      });
+      container.appendChild(grid);
+      return container;
+    }
+
+    function buildNibbleRow(hex) {
+      const row = document.createElement('div');
+      row.className = 'nibble-row';
+      for (const char of hex) {
+        const div = document.createElement('div');
+        div.className = 'nibble';
+        div.style.background = nibbleColor(char);
+        row.appendChild(div);
+      }
+      return row;
+    }
+
+    function updatePipeline() {
+      const N = computeN();
+      const { stretched, shifted, key } = encodeKey(N);
+      const keyHex = key.toString(16).padStart(64, '0');
+      const isValidKey = key >= 1n && key < CURVE_N;
+
+      step1El.innerHTML = '';
+      step1El.appendChild(buildDigitsDisplay());
+
+      const Nstr = N.toString(10);
+      step2El.innerHTML = `
+        <strong>Step 2 — Polynomial N (decimal)</strong>
+        <div class="mono">${Nstr.length > 70 ? Nstr.slice(0, 70) + '…' : Nstr}</div>
+        <div class="muted">up to 266 bits</div>
+      `;
+
+      const stretchedHex = stretched.toString(16);
+      step3El.innerHTML = `
+        <strong>Step 3 — N × Gx</strong>
+        <div class="mono">${truncateHex(stretchedHex)}</div>
+        <div class="muted">small N now maps to large output</div>
+      `;
+
+      const shiftedHex = shifted.toString(16);
+      step4El.innerHTML = `
+        <strong>Step 4 — N × Gx + CURVE_P</strong>
+        <div class="mono">${truncateHex(shiftedHex)}</div>
+        <div class="muted">zero-board no longer maps to 0</div>
+      `;
+
+      const msb = parseInt(keyHex.slice(0, 2), 16);
+      const msbPct = Math.round((msb / 255) * 100);
+      let msbLabel = 'MSB moderate';
+      let msbColor = '#f4a261';
+      if (msb < 0x50) {
+        msbLabel = 'MSB weak';
+        msbColor = '#e63946';
+      } else if (msb > 0xB4) {
+        msbLabel = 'MSB strong ✓';
+        msbColor = '#2a9d8f';
+      }
+
+      step5El.innerHTML = `
+        <strong>Step 5 — Private key (hex)</strong>
+        <div class="mono">${keyHex}</div>
+        <div class="msb-bar"><div class="msb-fill" style="width:${msbPct}%; background:${msbColor}"></div></div>
+        <div class="muted">${msbLabel} (0x${keyHex.slice(0, 2)})</div>
+        <div class="badge ${isValidKey ? 'good' : 'bad'}">${isValidKey ? 'Valid key range' : 'Invalid key range'}</div>
+      `;
+      step5El.appendChild(buildNibbleRow(keyHex));
+
+      const wif = hexToWif(keyHex);
+      step6El.innerHTML = `
+        <strong>Step 6 — WIF</strong>
+        <div class="mono">${wif}</div>
+        <div class="muted">Wallet Import Format</div>
+      `;
+
+      const address = compressedAddressFromPrivKey(key);
+      step7El.innerHTML = `
+        <strong>Step 7 — Compressed address</strong>
+        <div class="mono">${address}</div>
+        <div class="muted">P2PKH (compressed pubkey)</div>
+      `;
+
+      renderBalancePanel(step8El, address, false);
+      renderBalancePanel(balanceFloatEl, address, true);
+      wireBalanceButton(address);
+      scheduleAutoBalance(address);
+
+      buildNibbleChart(keyHex);
+    }
+
+    function formatBtc(sats) {
+      const sign = sats < 0 ? '-' : '';
+      const abs = Math.abs(sats);
+      const whole = Math.floor(abs / 1e8);
+      const frac = String(abs % 1e8).padStart(8, '0');
+      return `${sign}${whole}.${frac}`;
+    }
+
+    function renderBalancePanel(target, address, compact) {
+      if (!target) return;
+      target.innerHTML = `
+        <strong>${compact ? 'Balance' : 'Step 8 — Address balance'}</strong>
+        <div class="mono" id="balanceAddr">${address}</div>
+        <div class="copy-row">
+          <button class="btn" id="balanceCheck">Check balance</button>
+          <label style="display:flex;align-items:center;gap:6px;font-weight:700;">
+            <input type="checkbox" id="balanceAuto" ${autoBalanceEnabled ? 'checked' : ''} />
+            Auto check
+          </label>
+          <button class="btn alt" id="balanceResume" style="display:${balanceLock ? 'inline-flex' : 'none'};">Resume</button>
+        </div>
+        <div class="muted" id="balanceStatus">${balanceLock ? 'Balance detected. Editing locked.' : 'Uses Blockstream public API.'}</div>
+      `;
+    }
+
+    function wireBalanceButton(address) {
+      const buttons = document.querySelectorAll('#balanceCheck');
+      const toggles = document.querySelectorAll('#balanceAuto');
+      const statuses = document.querySelectorAll('#balanceStatus');
+      const resumes = document.querySelectorAll('#balanceResume');
+      if (buttons.length === 0 || statuses.length === 0) return;
+
+      const runCheck = async () => {
+        buttons.forEach((btn) => { btn.disabled = true; });
+        statuses.forEach((st) => { st.textContent = 'Checking balance...'; });
+        try {
+          const res = await fetch(`https://blockstream.info/api/address/${address}`);
+          if (!res.ok) throw new Error('API error');
+          const data = await res.json();
+          const confirmed = (data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum) || 0;
+          const unconfirmed = (data.mempool_stats.funded_txo_sum - data.mempool_stats.spent_txo_sum) || 0;
+          const text = `Confirmed: ${formatBtc(confirmed)} BTC (${confirmed} sats) | Unconfirmed: ${formatBtc(unconfirmed)} BTC (${unconfirmed} sats)`;
+          statuses.forEach((st) => { st.textContent = text; });
+          if (!balanceLock && (confirmed + unconfirmed) > 0) {
+            balanceLock = true;
+            alert('Balance detected. Chess editing is now locked. Click Resume to continue.');
+            updateBalanceLockUi();
+          }
+        } catch (err) {
+          statuses.forEach((st) => { st.textContent = 'Balance check failed. Try again later.'; });
+        } finally {
+          buttons.forEach((btn) => { btn.disabled = false; });
+        }
+      };
+
+      buttons.forEach((btn) => {
+        btn.onclick = runCheck;
+      });
+
+      toggles.forEach((toggle) => {
+        toggle.onchange = () => {
+          autoBalanceEnabled = toggle.checked;
+          toggles.forEach((other) => { if (other !== toggle) other.checked = autoBalanceEnabled; });
+          if (autoBalanceEnabled) scheduleAutoBalance(address);
+        };
+      });
+
+      resumes.forEach((btn) => {
+        btn.onclick = () => {
+          balanceLock = false;
+          updateBalanceLockUi();
+        };
+      });
+    }
+
+    function updateBalanceLockUi() {
+      const statuses = document.querySelectorAll('#balanceStatus');
+      const resumes = document.querySelectorAll('#balanceResume');
+      if (balanceLock) {
+        statuses.forEach((st) => { st.textContent = 'Balance detected. Editing locked.'; });
+        resumes.forEach((btn) => { btn.style.display = 'inline-flex'; });
+      } else {
+        statuses.forEach((st) => { st.textContent = 'Uses Blockstream public API.'; });
+        resumes.forEach((btn) => { btn.style.display = 'none'; });
+      }
+    }
+
+    function scheduleAutoBalance(address) {
+      if (!autoBalanceEnabled) return;
+      if (autoBalanceTimer) clearTimeout(autoBalanceTimer);
+      autoBalanceTimer = setTimeout(() => {
+        const button = document.getElementById('balanceCheck');
+        if (button) button.click();
+      }, 400);
+    }
+
+    function buildNibbleChart(hex) {
+      const counts = new Array(16).fill(0);
+      for (const ch of hex.toLowerCase()) {
+        const val = parseInt(ch, 16);
+        counts[val] += 1;
+      }
+      const max = Math.max(...counts, 1);
+      nibbleChartEl.innerHTML = '';
+      const labels = '0123456789abcdef';
+      counts.forEach((count, i) => {
+        const bar = document.createElement('div');
+        const height = Math.round((count / max) * 100);
+        bar.className = 'bar';
+        bar.style.height = `${height}%`;
+        bar.style.background = nibbleColor(labels[i]);
+        bar.textContent = labels[i].toUpperCase();
+        nibbleChartEl.appendChild(bar);
+      });
+    }
+
+    function hexToBytes(hex) {
+      const bytes = [];
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.slice(i, i + 2), 16));
+      }
+      return bytes;
+    }
+
+    function bytesToHex(bytes) {
+      return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function mod(a, m) {
+      const res = a % m;
+      return res >= 0n ? res : res + m;
+    }
+
+    function modInv(a, m) {
+      let t = 0n, newT = 1n;
+      let r = m, newR = mod(a, m);
+      while (newR !== 0n) {
+        const q = r / newR;
+        [t, newT] = [newT, t - q * newT];
+        [r, newR] = [newR, r - q * newR];
+      }
+      if (r > 1n) return null;
+      if (t < 0n) t += m;
+      return t;
+    }
+
+    function pointAdd(p, q) {
+      if (!p) return q;
+      if (!q) return p;
+      if (p.x === q.x) {
+        if ((p.y + q.y) % CURVE_P === 0n) return null;
+        return pointDouble(p);
+      }
+      const m = mod((q.y - p.y) * modInv(q.x - p.x, CURVE_P), CURVE_P);
+      const rx = mod(m * m - p.x - q.x, CURVE_P);
+      const ry = mod(m * (p.x - rx) - p.y, CURVE_P);
+      return { x: rx, y: ry };
+    }
+
+    function pointDouble(p) {
+      if (!p) return null;
+      const m = mod((3n * p.x * p.x) * modInv(2n * p.y, CURVE_P), CURVE_P);
+      const rx = mod(m * m - 2n * p.x, CURVE_P);
+      const ry = mod(m * (p.x - rx) - p.y, CURVE_P);
+      return { x: rx, y: ry };
+    }
+
+    function scalarMult(k, point) {
+      let n = k;
+      let result = null;
+      let addend = point;
+      while (n > 0n) {
+        if (n & 1n) result = pointAdd(result, addend);
+        addend = pointDouble(addend);
+        n >>= 1n;
+      }
+      return result;
+    }
+
+    function sha256(bytes) {
+      const K = [
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+      ];
+
+      const H = [
+        0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,
+        0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19
+      ];
+
+      const padded = bytes.slice();
+      const bitLen = bytes.length * 8;
+      const high = Math.floor(bitLen / 0x100000000);
+      const low = bitLen >>> 0;
+      padded.push(0x80);
+      while ((padded.length % 64) !== 56) padded.push(0x00);
+      padded.push((high >>> 24) & 0xff, (high >>> 16) & 0xff, (high >>> 8) & 0xff, high & 0xff);
+      padded.push((low >>> 24) & 0xff, (low >>> 16) & 0xff, (low >>> 8) & 0xff, low & 0xff);
+
+      const w = new Array(64);
+      for (let i = 0; i < padded.length; i += 64) {
+        for (let j = 0; j < 16; j++) {
+          const idx = i + j * 4;
+          w[j] = ((padded[idx] << 24) | (padded[idx + 1] << 16) | (padded[idx + 2] << 8) | (padded[idx + 3])) >>> 0;
+        }
+        for (let j = 16; j < 64; j++) {
+          const s0 = (rotr(w[j - 15], 7) ^ rotr(w[j - 15], 18) ^ (w[j - 15] >>> 3)) >>> 0;
+          const s1 = (rotr(w[j - 2], 17) ^ rotr(w[j - 2], 19) ^ (w[j - 2] >>> 10)) >>> 0;
+          w[j] = (w[j - 16] + s0 + w[j - 7] + s1) >>> 0;
+        }
+
+        let a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+
+        for (let j = 0; j < 64; j++) {
+          const S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
+          const ch = (e & f) ^ (~e & g);
+          const temp1 = (h + S1 + ch + K[j] + w[j]) >>> 0;
+          const S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
+          const maj = (a & b) ^ (a & c) ^ (b & c);
+          const temp2 = (S0 + maj) >>> 0;
+
+          h = g; g = f; f = e; e = (d + temp1) >>> 0;
+          d = c; c = b; b = a; a = (temp1 + temp2) >>> 0;
+        }
+
+        H[0] = (H[0] + a) >>> 0;
+        H[1] = (H[1] + b) >>> 0;
+        H[2] = (H[2] + c) >>> 0;
+        H[3] = (H[3] + d) >>> 0;
+        H[4] = (H[4] + e) >>> 0;
+        H[5] = (H[5] + f) >>> 0;
+        H[6] = (H[6] + g) >>> 0;
+        H[7] = (H[7] + h) >>> 0;
+      }
+
+      const out = [];
+      for (const val of H) {
+        out.push((val >>> 24) & 0xff, (val >>> 16) & 0xff, (val >>> 8) & 0xff, val & 0xff);
+      }
+      return out;
+    }
+
+    function ripemd160(bytes) {
+      const r1 = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13];
+      const r2 = [5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11];
+      const s1 = [11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6];
+      const s2 = [8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11];
+      function f(j, x, y, z) {
+        if (j <= 15) return x ^ y ^ z;
+        if (j <= 31) return (x & y) | (~x & z);
+        if (j <= 47) return (x | ~y) ^ z;
+        if (j <= 63) return (x & z) | (y & ~z);
+        return x ^ (y | ~z);
+      }
+      function K1(j) {
+        if (j <= 15) return 0x00000000;
+        if (j <= 31) return 0x5a827999;
+        if (j <= 47) return 0x6ed9eba1;
+        if (j <= 63) return 0x8f1bbcdc;
+        return 0xa953fd4e;
+      }
+      function K2(j) {
+        if (j <= 15) return 0x50a28be6;
+        if (j <= 31) return 0x5c4dd124;
+        if (j <= 47) return 0x6d703ef3;
+        if (j <= 63) return 0x7a6d76e9;
+        return 0x00000000;
+      }
+
+      const padded = bytes.slice();
+      const bitLen = bytes.length * 8;
+      const low = bitLen >>> 0;
+      const high = Math.floor(bitLen / 0x100000000);
+      padded.push(0x80);
+      while ((padded.length % 64) !== 56) padded.push(0x00);
+      padded.push(low & 0xff, (low >>> 8) & 0xff, (low >>> 16) & 0xff, (low >>> 24) & 0xff);
+      padded.push(high & 0xff, (high >>> 8) & 0xff, (high >>> 16) & 0xff, (high >>> 24) & 0xff);
+
+      let h0 = 0x67452301, h1 = 0xefcdab89, h2 = 0x98badcfe, h3 = 0x10325476, h4 = 0xc3d2e1f0;
+      const x = new Array(16);
+      for (let i = 0; i < padded.length; i += 64) {
+        for (let j = 0; j < 16; j++) {
+          const idx = i + j * 4;
+          x[j] = (padded[idx]) | (padded[idx + 1] << 8) | (padded[idx + 2] << 16) | (padded[idx + 3] << 24);
+        }
+
+        let al = h0, bl = h1, cl = h2, dl = h3, el = h4;
+        let ar = h0, br = h1, cr = h2, dr = h3, er = h4;
+
+        for (let j = 0; j < 80; j++) {
+          const tl = rol((al + f(j, bl, cl, dl) + x[r1[j]] + K1(j)) >>> 0, s1[j]) + el >>> 0;
+          al = el; el = dl; dl = rol(cl, 10); cl = bl; bl = tl;
+
+          const tr = rol((ar + f(79 - j, br, cr, dr) + x[r2[j]] + K2(j)) >>> 0, s2[j]) + er >>> 0;
+          ar = er; er = dr; dr = rol(cr, 10); cr = br; br = tr;
+        }
+
+        const t = (h1 + cl + dr) >>> 0;
+        h1 = (h2 + dl + er) >>> 0;
+        h2 = (h3 + el + ar) >>> 0;
+        h3 = (h4 + al + br) >>> 0;
+        h4 = (h0 + bl + cr) >>> 0;
+        h0 = t;
+      }
+
+      const out = [h0, h1, h2, h3, h4];
+      const bytesOut = [];
+      for (const val of out) {
+        bytesOut.push(val & 0xff, (val >>> 8) & 0xff, (val >>> 16) & 0xff, (val >>> 24) & 0xff);
+      }
+      return bytesOut;
+    }
+
+    function rol(x, n) { return (x << n) | (x >>> (32 - n)); }
+
+    function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+
+    function base58Encode(bytes) {
+      const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+      let num = 0n;
+      for (const b of bytes) {
+        num = num * 256n + BigInt(b);
+      }
+      let encoded = '';
+      while (num > 0n) {
+        const rem = Number(num % 58n);
+        num = num / 58n;
+        encoded = alphabet[rem] + encoded;
+      }
+      for (const b of bytes) {
+        if (b === 0) encoded = '1' + encoded; else break;
+      }
+      return encoded;
+    }
+
+    function hexToWif(hex) {
+      const bytes = [0x80, ...hexToBytes(hex), 0x01];
+      const checksum = sha256(sha256(bytes)).slice(0, 4);
+      return base58Encode([...bytes, ...checksum]);
+    }
+
+    function compressedPubKeyFromPrivKey(key) {
+      const point = scalarMult(key, { x: GX, y: GY });
+      const prefix = point.y % 2n === 0n ? '02' : '03';
+      const xHex = point.x.toString(16).padStart(64, '0');
+      return prefix + xHex;
+    }
+
+    function compressedAddressFromPrivKey(key) {
+      const pubHex = compressedPubKeyFromPrivKey(key);
+      const pubBytes = hexToBytes(pubHex);
+      const sha = sha256(pubBytes);
+      const ripe = ripemd160(sha);
+      const payload = [0x00, ...ripe];
+      const checksum = sha256(sha256(payload)).slice(0, 4);
+      return base58Encode([...payload, ...checksum]);
+    }
+
+    function randomBoard() {
+      const next = new Array(64).fill(0);
+      const totalPieces = Math.floor(Math.random() * 21) + 10;
+
+      function placeDigit(digit) {
+        for (let tries = 0; tries < 200; tries++) {
+          const idx = Math.floor(Math.random() * 64);
+          if (next[idx] !== 0) continue;
+          const check = checkPlacement(next, digit, idx);
+          if (!check.ok) continue;
+          next[idx] = digit;
+          return true;
+        }
+        return false;
+      }
+
+      placeDigit(6);
+      placeDigit(12);
+
+      let placed = 2;
+      let guard = 0;
+      while (placed < totalPieces && guard < 500) {
+        guard += 1;
+        const digit = Math.floor(Math.random() * 12) + 1;
+        if (placeDigit(digit)) placed += 1;
+      }
+
+      applyBoard(next, true);
+    }
+
+    function initPresets() {
+      document.getElementById('presetStart').addEventListener('click', () => {
+        if (balanceLock) {
+          flash('Editing locked. Click Resume to continue.');
+          return;
+        }
+        applyBoard(STARTING, true);
+      });
+      document.getElementById('presetClear').addEventListener('click', () => {
+        if (balanceLock) {
+          flash('Editing locked. Click Resume to continue.');
+          return;
+        }
+        applyBoard(new Array(64).fill(0), true);
+      });
+      document.getElementById('presetRandom').addEventListener('click', () => {
+        if (balanceLock) {
+          flash('Editing locked. Click Resume to continue.');
+          return;
+        }
+        randomBoard();
+      });
+    }
+
+    function initFenImport() {
+      const fenInput = document.getElementById('fenInput');
+      document.getElementById('fenApply').addEventListener('click', () => {
+        if (balanceLock) {
+          flash('Editing locked. Click Resume to continue.');
+          return;
+        }
+        const parsed = parseFen(fenInput.value);
+        if (!parsed) {
+          flash('Invalid FEN placement.');
+          return;
+        }
+        const validity = validateBoard(parsed);
+        if (!validity.ok) {
+          flash(`FEN violates rules: ${validity.issue}`);
+          return;
+        }
+        applyBoard(parsed, true);
+      });
+    }
+
+    function initPgnImport() {
+      const pgnInput = document.getElementById('pgnInput');
+      document.getElementById('pgnApply').addEventListener('click', () => {
+        if (balanceLock) {
+          flash('Editing locked. Click Resume to continue.');
+          return;
+        }
+        const tokens = parsePgnMoves(pgnInput.value);
+        if (tokens.length === 0) {
+          flash('PGN is empty.');
+          return;
+        }
+        const startBoard = [...board];
+        let color = 'white';
+        let epSquare = -1;
+        const nextHistory = [[...startBoard]];
+        for (const token of tokens) {
+          const result = applySan(nextHistory[nextHistory.length - 1], token, color, epSquare);
+          if (!result) {
+            flash(`PGN parse failed at move: ${token}`);
+            return;
+          }
+          nextHistory.push(result.board);
+          epSquare = result.epSquare;
+          color = color === 'white' ? 'black' : 'white';
+        }
+        history = nextHistory;
+        historyIndex = 0;
+        pgnMoves = tokens;
+        applyBoard(history[historyIndex], false);
+        flash(`PGN loaded: ${tokens.length} ply.`);
+      });
+    }
+
+    function initHistoryNav() {
+      document.getElementById('navStart').addEventListener('click', () => {
+        if (history.length === 0) return;
+        historyIndex = 0;
+        applyBoard(history[historyIndex], false);
+      });
+      document.getElementById('navBack').addEventListener('click', () => {
+        if (historyIndex <= 0) return;
+        historyIndex -= 1;
+        applyBoard(history[historyIndex], false);
+      });
+      document.getElementById('navNext').addEventListener('click', () => {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex += 1;
+        applyBoard(history[historyIndex], false);
+      });
+      document.getElementById('navEnd').addEventListener('click', () => {
+        if (history.length === 0) return;
+        historyIndex = history.length - 1;
+        applyBoard(history[historyIndex], false);
+      });
+      updateNavButtons();
+    }
+
+    function initRulesToggle() {
+      const toggle = document.getElementById('rulesToggle');
+      toggle.addEventListener('change', () => {
+        rulesEnabled = toggle.checked;
+        selectedFrom = null;
+        renderBoard();
+      });
+    }
+
+    function initKeyboardNav() {
+      document.addEventListener('keydown', (event) => {
+        const tag = event.target && event.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          if (historyIndex <= 0) return;
+          historyIndex -= 1;
+          applyBoard(history[historyIndex], false);
+        } else if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          if (historyIndex >= history.length - 1) return;
+          historyIndex += 1;
+          applyBoard(history[historyIndex], false);
+        } else if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          if (history.length === 0) return;
+          historyIndex = 0;
+          applyBoard(history[historyIndex], false);
+        } else if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          if (history.length === 0) return;
+          historyIndex = history.length - 1;
+          applyBoard(history[historyIndex], false);
+        }
+      });
+    }
+
+    function initCopyButtons() {
+      document.getElementById('copyHex').addEventListener('click', () => {
+        const hex = step5El.querySelector('.mono').textContent;
+        navigator.clipboard.writeText(hex).then(() => flash('Copied hex!'));
+      });
+      document.getElementById('copyWif').addEventListener('click', () => {
+        const wif = step6El.querySelector('.mono').textContent;
+        navigator.clipboard.writeText(wif).then(() => flash('Copied WIF!'));
+      });
+      document.getElementById('copyAddr').addEventListener('click', () => {
+        const addr = step7El.querySelector('.mono').textContent;
+        navigator.clipboard.writeText(addr).then(() => flash('Copied address!'));
+      });
+    }
+
+    let flashTimer = null;
+    function flash(text) {
+      flashEl.textContent = text;
+      if (flashTimer) clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { flashEl.textContent = ''; }, 2000);
+    }
+
+    function initEncodingTable() {
+      encodingTableEl.innerHTML = '';
+      DIGIT_INFO.forEach((info) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${info.digit}</td><td>${info.piece}</td><td>${info.color}</td>`;
+        encodingTableEl.appendChild(row);
+      });
+    }
+
+    initLabels();
+    initSelector();
+    initPresets();
+    initFenImport();
+    initPgnImport();
+    initHistoryNav();
+    initRulesToggle();
+    initKeyboardNav();
+    initCopyButtons();
+    initEncodingTable();
+    selectDigit(1);
+    applyBoard(board, false);
+  </script>
+</body>
+</html>
