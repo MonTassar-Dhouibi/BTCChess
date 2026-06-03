@@ -872,7 +872,7 @@
           if (rulesEnabled) {
             handleSquareClickRules(i);
           } else {
-            attemptPlace(i, selectedDigit);
+            handleSquareClickFree(i);
           }
         });
 
@@ -884,7 +884,7 @@
           if (rulesEnabled) {
             handleSquareClickRules(i);
           } else {
-            attemptPlace(i, selectedDigit);
+            handleSquareClickFree(i);
           }
         });
 
@@ -918,7 +918,11 @@
               handleSquareClickRules(targetIndex);
             }
           } else {
-            attemptPlace(targetIndex, selectedDigit, touchFromIndex ?? -1);
+            if (touchFromIndex !== null && touchFromIndex !== targetIndex) {
+              attemptPlace(targetIndex, board[touchFromIndex], touchFromIndex);
+            } else {
+              handleSquareClickFree(targetIndex);
+            }
           }
 
           touchDragActive = false;
@@ -974,6 +978,31 @@
         return;
       }
       attemptMove(selectedFrom, index);
+    }
+
+    function handleSquareClickFree(index) {
+      if (balanceLock) {
+        flash('Editing locked. Click Resume to continue.');
+        return;
+      }
+      const digit = board[index];
+      if (selectedFrom === null) {
+        if (digit === 0) {
+          attemptPlace(index, selectedDigit);
+          return;
+        }
+        selectedFrom = index;
+        renderBoard();
+        return;
+      }
+      if (selectedFrom === index) {
+        selectedFrom = null;
+        renderBoard();
+        return;
+      }
+      attemptPlace(index, board[selectedFrom], selectedFrom);
+      selectedFrom = null;
+      renderBoard();
     }
 
     function choosePromotion(color) {
