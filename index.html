@@ -1080,6 +1080,12 @@
         return;
       }
       const digit = board[index];
+      if (selectedDigit === 0) {
+        attemptPlace(index, 0);
+        selectedFrom = null;
+        renderBoard();
+        return;
+      }
       if (selectedFrom === null) {
         if (digit === 0) {
           attemptPlace(index, selectedDigit);
