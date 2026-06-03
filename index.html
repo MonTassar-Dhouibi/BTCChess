@@ -792,14 +792,35 @@
 
       pieceOrder.forEach((digit) => {
         const info = DIGIT_INFO[digit];
-        whiteRow.appendChild(makePieceButton(info));
+        whiteRow.appendChild(buildPieceButton(info));
       });
 
       pieceOrder.forEach((digit) => {
         const info = DIGIT_INFO[digit + 6];
-        blackRow.appendChild(makePieceButton(info));
+        blackRow.appendChild(buildPieceButton(info));
       });
 
+      whiteRow.appendChild(buildEraserButton());
+      bindSelectorHandlers(whiteRow);
+      bindSelectorHandlers(blackRow);
+    }
+
+    function buildPieceButton(info) {
+      const btn = document.createElement('button');
+      btn.className = 'piece-btn';
+      btn.dataset.digit = String(info.digit);
+      btn.textContent = info.symbol;
+      const span = document.createElement('span');
+      span.textContent = info.digit;
+      btn.appendChild(span);
+      btn.draggable = true;
+      btn.addEventListener('dragstart', (event) => {
+        event.dataTransfer.setData('text/plain', String(info.digit));
+      });
+      return btn;
+    }
+
+    function buildEraserButton() {
       const eraser = document.createElement('button');
       eraser.className = 'piece-btn';
       eraser.dataset.digit = '0';
@@ -807,48 +828,28 @@
       const span = document.createElement('span');
       span.textContent = '0';
       eraser.appendChild(span);
-      eraser.addEventListener('click', () => selectDigit(0));
-      eraser.addEventListener('pointerup', (event) => {
-        if (event.pointerType === 'touch') {
-          event.preventDefault();
-        }
-        selectDigit(0);
-      });
-      eraser.addEventListener('touchend', (event) => {
-        event.preventDefault();
-        selectDigit(0);
-      }, { passive: false });
+      eraser.draggable = true;
       eraser.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('text/plain', '0');
       });
-      eraser.draggable = true;
-      whiteRow.appendChild(eraser);
+      return eraser;
     }
 
-    function makePieceButton(info) {
-      const btn = document.createElement('button');
-      btn.className = 'piece-btn';
-      btn.dataset.digit = info.digit;
-      btn.textContent = info.symbol;
-      const span = document.createElement('span');
-      span.textContent = info.digit;
-      btn.appendChild(span);
-      btn.addEventListener('click', () => selectDigit(info.digit));
-      btn.addEventListener('pointerup', (event) => {
+    function bindSelectorHandlers(container) {
+      container.addEventListener('pointerup', (event) => {
+        const button = event.target.closest('.piece-btn');
+        if (!button) return;
         if (event.pointerType === 'touch') {
           event.preventDefault();
         }
-        selectDigit(info.digit);
+        selectDigit(Number(button.dataset.digit));
       });
-      btn.addEventListener('touchend', (event) => {
-        event.preventDefault();
-        selectDigit(info.digit);
-      }, { passive: false });
-      btn.addEventListener('dragstart', (event) => {
-        event.dataTransfer.setData('text/plain', String(info.digit));
+
+      container.addEventListener('click', (event) => {
+        const button = event.target.closest('.piece-btn');
+        if (!button) return;
+        selectDigit(Number(button.dataset.digit));
       });
-      btn.draggable = true;
-      return btn;
     }
 
     function selectDigit(digit) {
