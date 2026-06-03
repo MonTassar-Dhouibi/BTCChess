@@ -836,12 +836,10 @@
     }
 
     function bindSelectorHandlers(container) {
-      container.addEventListener('pointerup', (event) => {
+      container.addEventListener('pointerdown', (event) => {
         const button = event.target.closest('.piece-btn');
         if (!button) return;
-        if (event.pointerType === 'touch') {
-          event.preventDefault();
-        }
+        event.preventDefault();
         selectDigit(Number(button.dataset.digit));
       });
 
@@ -854,9 +852,16 @@
 
     function selectDigit(digit) {
       selectedDigit = digit;
+      selectedFrom = null;
+      if (rulesEnabled) {
+        rulesEnabled = false;
+        const toggle = document.getElementById('rulesToggle');
+        if (toggle) toggle.checked = false;
+      }
       document.querySelectorAll('.piece-btn').forEach((btn) => {
         btn.classList.toggle('active', Number(btn.dataset.digit) === digit);
       });
+      renderBoard();
     }
 
     function renderBoard() {
