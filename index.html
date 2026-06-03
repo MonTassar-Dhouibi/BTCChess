@@ -790,6 +790,16 @@
       span.textContent = '0';
       eraser.appendChild(span);
       eraser.addEventListener('click', () => selectDigit(0));
+      eraser.addEventListener('pointerup', (event) => {
+        if (event.pointerType === 'touch') {
+          event.preventDefault();
+        }
+        selectDigit(0);
+      });
+      eraser.addEventListener('touchend', (event) => {
+        event.preventDefault();
+        selectDigit(0);
+      }, { passive: false });
       eraser.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('text/plain', '0');
       });
@@ -806,6 +816,16 @@
       span.textContent = info.digit;
       btn.appendChild(span);
       btn.addEventListener('click', () => selectDigit(info.digit));
+      btn.addEventListener('pointerup', (event) => {
+        if (event.pointerType === 'touch') {
+          event.preventDefault();
+        }
+        selectDigit(info.digit);
+      });
+      btn.addEventListener('touchend', (event) => {
+        event.preventDefault();
+        selectDigit(info.digit);
+      }, { passive: false });
       btn.addEventListener('dragstart', (event) => {
         event.dataTransfer.setData('text/plain', String(info.digit));
       });
