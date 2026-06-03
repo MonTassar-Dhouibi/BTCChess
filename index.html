@@ -181,6 +181,22 @@
       outline-offset: -3px;
     }
 
+    .touch-ghost {
+      position: fixed;
+      z-index: 9999;
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+
     .sq-inner {
       position: absolute;
       inset: 0;
@@ -608,6 +624,7 @@
   </main>
 
   <div class="balance-float" id="balanceFloat"></div>
+  <div class="touch-ghost" id="touchGhost"></div>
 
   <script>
     const CURVE_N = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
@@ -657,6 +674,7 @@
     const step7El = document.getElementById('step7');
     const step8El = document.getElementById('step8');
     const balanceFloatEl = document.getElementById('balanceFloat');
+    const touchGhostEl = document.getElementById('touchGhost');
     const nibbleChartEl = document.getElementById('nibbleChart');
     const flashEl = document.getElementById('flash');
 
@@ -845,7 +863,7 @@
       board.forEach((digit, i) => {
         const square = document.createElement('div');
         square.className = 'square';
-        if (rulesEnabled && selectedFrom === i) {
+        if (selectedFrom === i) {
           square.classList.add('selected');
         }
         square.dataset.index = String(i);
@@ -892,7 +910,25 @@
           event.preventDefault();
           touchDragActive = true;
           touchFromIndex = i;
+          const symbol = DIGIT_INFO[digit].symbol;
+          if (symbol) {
+            touchGhostEl.textContent = symbol;
+            touchGhostEl.style.display = 'flex';
+            const touch = event.touches[0];
+            if (touch) {
+              touchGhostEl.style.left = `${touch.clientX}px`;
+              touchGhostEl.style.top = `${touch.clientY}px`;
+            }
+          }
         }, { passive: false });
+
+        square.addEventListener('touchmove', (event) => {
+          if (!touchDragActive) return;
+          const touch = event.touches[0];
+          if (!touch) return;
+          touchGhostEl.style.left = `${touch.clientX}px`;
+          touchGhostEl.style.top = `${touch.clientY}px`;
+        }, { passive: true });
 
         square.addEventListener('touchend', (event) => {
           event.preventDefault();
@@ -927,6 +963,7 @@
 
           touchDragActive = false;
           touchFromIndex = null;
+          touchGhostEl.style.display = 'none';
         }, { passive: false });
 
         square.addEventListener('mouseenter', () => updateInspector(i));
