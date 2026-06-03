@@ -197,6 +197,41 @@
       transform: translate(-50%, -50%);
     }
 
+    .promo-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .promo-panel {
+      background: #fffaf2;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      min-width: 240px;
+    }
+
+    .promo-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .promo-btn {
+      border: 2px solid #e2d9c8;
+      border-radius: 12px;
+      padding: 10px 0;
+      font-size: 1.4rem;
+      background: #fff;
+      cursor: pointer;
+    }
+
     .sq-inner {
       position: absolute;
       inset: 0;
@@ -625,6 +660,17 @@
 
   <div class="balance-float" id="balanceFloat"></div>
   <div class="touch-ghost" id="touchGhost"></div>
+  <div class="promo-modal" id="promoModal">
+    <div class="promo-panel">
+      <div id="promoTitle">Promote pawn</div>
+      <div class="promo-row">
+        <button class="promo-btn" data-piece="Q">♕</button>
+        <button class="promo-btn" data-piece="R">♖</button>
+        <button class="promo-btn" data-piece="B">♗</button>
+        <button class="promo-btn" data-piece="N">♘</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const CURVE_N = BigInt('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141');
@@ -675,6 +721,8 @@
     const step8El = document.getElementById('step8');
     const balanceFloatEl = document.getElementById('balanceFloat');
     const touchGhostEl = document.getElementById('touchGhost');
+    const promoModalEl = document.getElementById('promoModal');
+    const promoTitleEl = document.getElementById('promoTitle');
     const nibbleChartEl = document.getElementById('nibbleChart');
     const flashEl = document.getElementById('flash');
 
@@ -697,6 +745,7 @@
     let touchDragActive = false;
     let touchFromIndex = null;
     let currentTurn = 'white';
+    let pendingPromotion = null;
 
     function getPieceMeta(digit) {
       if (digit === 0) return null;
@@ -1004,6 +1053,7 @@
     }
 
     function handleSquareClickRules(index) {
+      if (pendingPromotion) return;
       if (balanceLock) {
         flash('Editing locked. Click Resume to continue.');
         return;
@@ -1024,6 +1074,7 @@
     }
 
     function handleSquareClickFree(index) {
+      if (pendingPromotion) return;
       if (balanceLock) {
         flash('Editing locked. Click Resume to continue.');
         return;
@@ -1049,12 +1100,22 @@
     }
 
     function choosePromotion(color) {
-      const choice = window.prompt('Promote pawn to (Q/R/B/N):', 'Q');
-      if (!choice) return null;
-      const c = choice.trim().toUpperCase();
       const map = { Q: 5, R: 4, B: 3, N: 2 };
-      const type = map[c] || 5;
-      return color === 'white' ? type : type + 6;
+      return (piece) => {
+        const type = map[piece] || 5;
+        return color === 'white' ? type : type + 6;
+      };
+    }
+
+    function openPromotionPicker(color, onPick) {
+      promoTitleEl.textContent = `Promote ${color} pawn`;
+      promoModalEl.style.display = 'flex';
+      promoModalEl.querySelectorAll('.promo-btn').forEach((btn) => {
+        btn.onclick = () => {
+          promoModalEl.style.display = 'none';
+          onPick(btn.dataset.piece);
+        };
+      });
     }
 
     function findKing(boardArr, color) {
@@ -1106,6 +1167,7 @@
     }
 
     function attemptMove(fromIndex, toIndex) {
+      if (pendingPromotion) return;
       if (balanceLock) {
         flash('Editing locked. Click Resume to continue.');
         return;
@@ -1133,10 +1195,27 @@
       let placed = moving;
       const toPos = indexToCoord(toIndex);
       if (movingMeta.type === 1 && (toPos.row === 0 || toPos.row === 7)) {
-        const promotion = choosePromotion(movingMeta.color);
-        if (!promotion) return;
-        placed = promotion;
+        const mapper = choosePromotion(movingMeta.color);
+        pendingPromotion = { fromIndex, toIndex, movingMeta };
+        openPromotionPicker(movingMeta.color, (piece) => {
+          const promoted = mapper(piece);
+          const promoBoard = [...board];
+          promoBoard[fromIndex] = 0;
+          promoBoard[toIndex] = promoted;
+          pendingPromotion = null;
+          if (isKingInCheck(promoBoard, movingMeta.color)) {
+            flash('Move leaves king in check.');
+            return;
+          }
+          selectedFrom = null;
+          if (rulesEnabled) {
+            currentTurn = currentTurn === 'white' ? 'black' : 'white';
+          }
+          applyBoard(promoBoard, true);
+        });
+        return;
       }
+
       nextBoard[fromIndex] = 0;
       nextBoard[toIndex] = placed;
 
@@ -1153,6 +1232,7 @@
     }
 
     function attemptPlace(targetIndex, digit, sourceIndex = -1) {
+      if (pendingPromotion) return;
       if (balanceLock) {
         flash('Editing locked. Click Resume to continue.');
         return;
